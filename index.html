@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nutrify - Ultimate Nutrition App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#0f2027;--card:rgba(255,255,255,0.1);--text:#fff;--accent:#28a745}
+.light{--bg:#f4f4f4;--card:rgba(255,255,255,0.8);--text:#000;--accent:#28a745}
+body{margin:0;font-family:Arial;background:var(--bg);color:var(--text);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.container{display:flex;justify-content:center;align-items:flex-start;padding:20px}
+.app{width:100%;max-width:420px;background:var(--card);backdrop-filter:blur(15px);border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.3);padding:20px;display:flex;flex-direction:column;align-items:center;min-height:90vh}
+h1{text-align:center;margin-bottom:15px}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:14px;border:none;font-size:14px}
+select{max-height:250px;overflow-y:auto;-webkit-overflow-scrolling:touch;background: var(--card);color: var(--text);}
+button{background:var(--accent);color:#fff;cursor:pointer;transition:0.3s}
+button:hover{opacity:0.85}
+.card{background:var(--card);padding:15px;border-radius:18px;margin:10px 0;width:100%;overflow-x:auto}
+.row{display:flex;justify-content:space-between;font-size:13px;margin:3px 0}
+.toggle{display:flex;justify-content:center;align-items:center;cursor:pointer;width:55px;height:55px;border-radius:50%;background:var(--card);margin:15px auto;font-size:20px;user-select:none;transition:0.3s}
+.toggle:hover{opacity:0.8}
+.section{margin-top:12px;font-weight:bold;text-align:center}
+footer{margin-top:15px;text-align:center;font-size:12px;opacity:0.7}
+@media(max-width:480px){.app{padding:15px;width:95%;border-radius:16px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="app">
+<h1>🥗 Nutrify</h1>
+<div class="toggle" onclick="toggleTheme()">🌙☀</div>
+
+<select id="food" onchange="selectFood()"></select>
+<input id="portion" type="number" value="100" placeholder="grams" oninput="updateNutrition()">
+
+<div class="card">
+<div class="section">Macros (per 100g)</div>
+<div class="row"><span>Calories (kcal)</span><span id="cal"></span></div>
+<div class="row"><span>Protein (g)</span><span id="pro"></span></div>
+<div class="row"><span>Carbs (g)</span><span id="carb"></span></div>
+<div class="row"><span>Fat (g)</span><span id="fat"></span></div>
+
+<div class="section">Vitamins</div>
+<div class="row"><span>A (µg)</span><span id="vA"></span></div>
+<div class="row"><span>B1 (mg)</span><span id="vB1"></span></div>
+<div class="row"><span>B2 (mg)</span><span id="vB2"></span></div>
+<div class="row"><span>B3 (mg)</span><span id="vB3"></span></div>
+<div class="row"><span>B5 (mg)</span><span id="vB5"></span></div>
+<div class="row"><span>B6 (mg)</span><span id="vB6"></span></div>
+<div class="row"><span>B7 (µg)</span><span id="vB7"></span></div>
+<div class="row"><span>B9 (µg)</span><span id="vB9"></span></div>
+<div class="row"><span>B12 (µg)</span><span id="vB12"></span></div>
+<div class="row"><span>C (mg)</span><span id="vC"></span></div>
+<div class="row"><span>D (µg)</span><span id="vD"></span></div>
+<div class="row"><span>E (mg)</span><span id="vE"></span></div>
+<div class="row"><span>K (µg)</span><span id="vK"></span></div>
+
+<div class="section">Minerals</div>
+<div class="row"><span>Calcium (mg)</span><span id="mCa"></span></div>
+<div class="row"><span>Iron (mg)</span><span id="mFe"></span></div>
+<div class="row"><span>Magnesium (mg)</span><span id="mMg"></span></div>
+<div class="row"><span>Zinc (mg)</span><span id="mZn"></span></div>
+<div class="row"><span>Potassium (mg)</span><span id="mK"></span></div>
+<div class="row"><span>Sodium (mg)</span><span id="mNa"></span></div>
+<div class="row"><span>Phosphorus (mg)</span><span id="mP"></span></div>
+<div class="row"><span>Selenium (µg)</span><span id="mSe"></span></div>
+<div class="row"><span>Copper (mg)</span><span id="mCu"></span></div>
+<div class="row"><span>Manganese (mg)</span><span id="mMn"></span></div>
+</div>
+
+<canvas id="chart" style="width:100%;max-width:400px;margin-top:10px"></canvas>
+
+<div class="section">🍽 Meal Planner</div>
+<button onclick="addMeal('Breakfast')">Breakfast</button>
+<button onclick="addMeal('Lunch')">Lunch</button>
+<button onclick="addMeal('Dinner')">Dinner</button>
+<div class="card" id="meals"></div>
+
+<div class="section">➕ Custom Food</div>
+<input id="n" placeholder="Name">
+<input id="c" placeholder="Calories (kcal)">
+<input id="p" placeholder="Protein (g)">
+<input id="ca" placeholder="Carbs (g)">
+<input id="f" placeholder="Fat (g)">
+<button onclick="addFood()">Save</button>
+<button onclick="resetAll()">Reset All</button>
+
+<footer>© Manik Roy <span id="year"></span>. All Rights Reserved.</footer>
+</div>
+</div>
+
+<script>
+// ================== Food Data ==================
+const foodsList = [
+"Apple","Banana","Orange","Mango","Grapes","Pineapple","Strawberry","Blueberry","Raspberry","Blackberry",
+"Watermelon","Papaya","Guava","Kiwi","Lemon","Lime","Pear","Peach","Plum","Cherries",
+"Apricot","Fig","Pomegranate","Cantaloupe","Honeydew","Dragonfruit","Passionfruit","Lychee","Tangerine","Clementine",
+"Nectarine","Persimmon","Starfruit","Mulberry","Cranberry","Jackfruit","Durian","Avocado","Olive","Date",
+"Gooseberry","Currant","Elderberry","Quince","Kumquat","Boysenberry","Longan","Soursop","Rambutan","Breadfruit",
+// Vegetables
+"Carrot","Potato","Tomato","Onion","Spinach","Broccoli","Cabbage","Cauliflower","Lettuce","Cucumber",
+"Bell Pepper","Zucchini","Eggplant","Radish","Beetroot","Turnip","Pumpkin","Sweet Potato","Celery","Asparagus",
+"Mushroom","Leek","Garlic","Ginger","Green Beans","Okra","Brussels Sprouts","Kale","Arugula","Bok Choy",
+"Chayote","Fennel","Watercress","Collard Greens","Mustard Greens","Endive","Artichoke","Parsnip","Rutabaga","Snow Peas",
+"Pea Shoots","Swiss Chard","Taro","Cassava","Yam","Seaweed","Bamboo Shoot","Celeriac","Daikon","Scallion",
+// Grains
+"Rice","Wheat","Oats","Barley","Quinoa","Corn","Millet","Buckwheat","Rye","Sorghum",
+"Teff","Amaranth","Spelt","Kamut","Farro","Bulgur","Freekeh","Fonio","Job's Tears","Wild Rice",
+"Black Rice","Red Rice","White Rice","Brown Rice","Glutinous Rice","Pearl Barley","Rolled Oats","Steel-cut Oats","Polenta","Couscous",
+"Semolina","Triticale","Muesli","Cornmeal","Popcorn","Rice Noodles","Soba Noodles","Udon Noodles","Spaghetti","Fusilli",
+"Macaroni","Rice Flour","Wheat Flour","Barley Flour","Corn Flour","Millet Flour","Quinoa Flour","Amaranth Flour","Buckwheat Flour","Oat Flour",
+// Pulses
+"Chickpeas","Lentils","Kidney Beans","Black Beans","Soy Beans","Navy Beans","Pinto Beans","Mung Beans","Adzuki Beans","Lima Beans",
+"Split Peas","Green Peas","Yellow Peas","Red Lentils","Brown Lentils","Black-eyed Peas","Fava Beans","Cannellini Beans","Great Northern Beans","Broad Beans",
+"Butter Beans","Chana Dal","Toor Dal","Moong Dal","Masoor Dal","Urad Dal","Horse Gram","Rajma","Black Gram","White Beans",
+"Red Beans","Green Gram","Pea Beans","Soy Lentils","Split Black Lentils","Yellow Split Peas","Black Lentils","Brown Chickpeas","Pigeon Peas","Creeper Beans",
+"Field Beans","Winged Beans","Lupin Beans","Tiger Nuts","Cowpeas","Soya Chunks","Tempeh","Edamame","Bean Sprouts","Sprouted Lentils",
+// Dairy
+"Milk","Yogurt","Cheese","Butter","Cream","Paneer","Ghee","Kefir","Sour Cream","Buttermilk",
+"Cottage Cheese","Ricotta","Mascarpone","Mozzarella","Parmesan","Cheddar","Gouda","Blue Cheese","Feta","Swiss Cheese",
+"Provolone","Halloumi","Quark","Curd","Clotted Cream","Labneh","Cream Cheese","Evaporated Milk","Condensed Milk","Powdered Milk",
+// Meat & Egg
+"Egg","Chicken Breast","Chicken Thigh","Chicken Drumstick","Chicken Wing","Turkey","Duck","Goose","Beef","Pork",
+"Lamb","Veal","Bacon","Sausage","Ham","Salami","Mutton","Venison","Rabbit","Fish","Shrimp"
+];
+
+// ================== Nutrition Templates ==================
+const T = {
+fruit:{cal:52,pro:0.6,carb:14,fat:0.3,A:64,C:10,D:0,E:0.2,K:2,B1:.03,B2:.02,B3:.4,B5:.1,B6:.05,B7:.5,B9:5,B12:0,Ca:6,Fe:.3,Mg:5,Zn:.1,Km:107,Na:1,P:11,Se:.1,Cu:.04,Mn:.03},
+veg:{cal:35,pro:2.5,carb:7,fat:0.2,A:350,C:25,D:0,E:1.5,K:60,B1:.05,B2:.05,B3:.6,B5:.2,B6:.1,B7:1,B9:40,B12:0,Ca:40,Fe:1.2,Mg:20,Zn:.3,Km:250,Na:20,P:45,Se:.3,Cu:.1,Mn:.2},
+grain:{cal:130,pro:3,carb:28,fat:1,A:0,C:0,D:0,E:.5,K:1,B1:.2,B2:.1,B3:2,B5:.4,B6:.1,B7:2,B9:15,B12:0,Ca:10,Fe:1.5,Mg:35,Zn:1.1,Km:120,Na:5,P:95,Se:5,Cu:.2,Mn:.8},
+pulse:{cal:160,pro:9,carb:27,fat:.8,A:2,C:4,D:0,E:.4,K:5,B1:.3,B2:.15,B3:2,B5:.6,B6:.3,B7:4,B9:180,B12:0,Ca:50,Fe:3.5,Mg:60,Zn:1.3,Km:400,Na:5,P:180,Se:3,Cu:.5,Mn:1.2},
+dairy:{cal:60,pro:3.5,carb:5,fat:3,A:50,C:2,D:.5,E:.1,K:.5,B1:.04,B2:.18,B3:.1,B5:.4,B6:.04,B7:3,B9:5,B12:.4,Ca:120,Fe:.1,Mg:11,Zn:.4,Km:150,Na:45,P:95,Se:3,Cu:.02,Mn:.01},
+meat:{cal:180,pro:26,carb:0,fat:8,A:20,C:0,D:.3,E:.3,K:1,B1:.1,B2:.2,B3:5,B5:1,B6:.6,B7:7,B9:6,B12:2.5,Ca:15,Fe:2.6,Mg:28,Zn:4,Km:260,Na:70,P:200,Se:27,Cu:.1,Mn:.02},
+egg:{cal:155,pro:13,carb:1.1,fat:11,A:140,B1:0.02,B2:0.45,B3:0.075,B5:1.4,B6:0.1,B7:10,B9:47,B12:1.1,C:0,D:37,E:1.05,K:0.3,Ca:50,Fe:1.2,Mg:10,Zn:1,Km:126,Na:124,P:86,Se:31,Cu:0.075,Mn:0.03}
+};
+
+// ================== Assign Nutrition ==================
+let foods = {};
+foodsList.forEach(f=>{
+  let type;
+  if(f==="Egg") type="egg";
+  else if(/Milk|Yogurt|Cheese|Butter|Cream|Paneer|Ghee|Kefir|Sour Cream|Buttermilk|Cottage Cheese|Ricotta|Mascarpone|Mozzarella|Parmesan|Cheddar|Gouda|Blue Cheese|Feta|Swiss Cheese|Provolone|Halloumi|Quark|Curd|Clotted Cream|Labneh|Cream Cheese|Evaporated Milk|Condensed Milk|Powdered Milk/.test(f)) type="dairy";
+  else if(/Chickpeas|Lentils|Kidney Beans|Black Beans|Soy Beans|Navy Beans|Pinto Beans|Mung Beans|Adzuki Beans|Lima Beans|Split Peas|Green Peas|Yellow Peas|Red Lentils|Brown Lentils|Black-eyed Peas|Fava Beans|Cannellini Beans|Great Northern Beans|Broad Beans|Butter Beans|Chana Dal|Toor Dal|Moong Dal|Masoor Dal|Urad Dal|Horse Gram|Rajma|Black Gram|White Beans|Red Beans|Green Gram|Pea Beans|Soy Lentils|Split Black Lentils|Yellow Split Peas|Black Lentils|Brown Chickpeas|Pigeon Peas|Creeper Beans|Field Beans|Winged Beans|Lupin Beans|Tiger Nuts|Cowpeas|Soya Chunks|Tempeh|Edamame|Bean Sprouts|Sprouted Lentils/.test(f)) type="pulse";
+  else if(/Rice|Wheat|Oats|Barley|Quinoa|Corn|Millet|Buckwheat|Rye|Sorghum|Teff|Amaranth|Spelt|Kamut|Farro|Bulgur|Freekeh|Fonio|Job's Tears|Wild Rice|Black Rice|Red Rice|White Rice|Brown Rice|Glutinous Rice|Pearl Barley|Rolled Oats|Steel-cut Oats|Polenta|Couscous|Semolina|Triticale|Muesli|Cornmeal|Popcorn|Rice Noodles|Soba Noodles|Udon Noodles|Spaghetti|Fusilli|Macaroni|Rice Flour|Wheat Flour|Barley Flour|Corn Flour|Millet Flour|Quinoa Flour|Amaranth Flour|Buckwheat Flour|Oat Flour/.test(f)) type="grain";
+  else if(/Carrot|Potato|Tomato|Onion|Spinach|Broccoli|Cabbage|Cauliflower|Lettuce|Cucumber|Bell Pepper|Zucchini|Eggplant|Radish|Beetroot|Turnip|Pumpkin|Sweet Potato|Celery|Asparagus|Mushroom|Leek|Garlic|Ginger|Green Beans|Okra|Brussels Sprouts|Kale|Arugula|Bok Choy|Chayote|Fennel|Watercress|Collard Greens|Mustard Greens|Endive|Artichoke|Parsnip|Rutabaga|Snow Peas|Pea Shoots|Swiss Chard|Taro|Cassava|Yam|Seaweed|Bamboo Shoot|Celeriac|Daikon|Scallion/.test(f)) type="veg";
+  else if(/Apple|Banana|Orange|Mango|Grapes|Pineapple|Strawberry|Blueberry|Raspberry|Blackberry|Watermelon|Papaya|Guava|Kiwi|Lemon|Lime|Pear|Peach|Plum|Cherries|Apricot|Fig|Pomegranate|Cantaloupe|Honeydew|Dragonfruit|Passionfruit|Lychee|Tangerine|Clementine|Nectarine|Persimmon|Starfruit|Mulberry|Cranberry|Jackfruit|Durian|Avocado|Olive|Date|Gooseberry|Currant|Elderberry|Quince|Kumquat|Boysenberry|Longan|Soursop|Rambutan|Breadfruit/.test(f)) type="fruit";
+  else type="meat";
+  foods[f] = { ...T[type] };
+});
+
+// ================== Populate Dropdown ==================
+const foodSel = document.getElementById('food');
+function loadFoods() {
+  foodSel.innerHTML = '';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = 'Select food';
+  foodSel.appendChild(defaultOpt);
+
+  Object.keys(foods).sort().forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f;
+    foodSel.appendChild(opt);
+  });
+}
+loadFoods();
+
+// ================== Nutrition Display ==================
+function selectFood() {
+  document.getElementById('portion').value = 100;
+  updateNutrition();
+}
+
+function updateNutrition() {
+  const f = foodSel.value;
+  if (!f) return;
+  const p = parseFloat(document.getElementById('portion').value) || 100;
+  const data = foods[f];
+  const factor = p / 100;
+  ['cal','pro','carb','fat','vA','vB1','vB2','vB3','vB5','vB6','vB7','vB9','vB12','vC','vD','vE','vK',
+   'mCa','mFe','mMg','mZn','mK','mNa','mP','mSe','mCu','mMn'].forEach(id => {
+    const keyMap = {
+      cal:'cal', pro:'pro', carb:'carb', fat:'fat',
+      vA:'A', vB1:'B1', vB2:'B2', vB3:'B3', vB5:'B5', vB6:'B6', vB7:'B7', vB9:'B9', vB12:'B12',
+      vC:'C', vD:'D', vE:'E', vK:'K',
+      mCa:'Ca', mFe:'Fe', mMg:'Mg', mZn:'Zn', mK:'Km', mNa:'Na', mP:'P', mSe:'Se', mCu:'Cu', mMn:'Mn'
+    };
+    document.getElementById(id).textContent = (data[keyMap[id]] * factor).toFixed(2);
+  });
+
+  // Chart
+  const chartData = {
+    labels:['Calories','Protein','Carbs','Fat'],
+    datasets:[{label:f,data:[data.cal*factor,data.pro*factor,data.carb*factor,data.fat*factor],backgroundColor:'rgba(40,167,69,0.6)'}]
+  };
+  if(window.nutChart) window.nutChart.destroy();
+  const ctx = document.getElementById('chart').getContext('2d');
+  window.nutChart = new Chart(ctx,{type:'bar',data:chartData,options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+}
+
+// ================== Meal Planner ==================
+const mealsDiv = document.getElementById('meals');
+let meals = {Breakfast:[], Lunch:[], Dinner:[]};
+function addMeal(type) {
+  const f = foodSel.value;
+  if(!f) return;
+  meals[type].push({food:f, portion:parseFloat(document.getElementById('portion').value)||100});
+  renderMeals();
+}
+function renderMeals() {
+  mealsDiv.innerHTML = '';
+  for(const m in meals) {
+    if(meals[m].length) {
+      const section = document.createElement('div');
+      section.innerHTML = `<strong>${m}</strong>`;
+      meals[m].forEach(item=>{
+        const div = document.createElement('div');
+        div.textContent = `${item.food} - ${item.portion}g`;
+        section.appendChild(div);
+      });
+      mealsDiv.appendChild(section);
+    }
+  }
+}
+
+// ================== Custom Food ==================
+function addFood() {
+  const n = document.getElementById('n').value.trim();
+  if(!n) return alert("Enter name");
+  foods[n] = {
+    cal: parseFloat(document.getElementById('c').value)||0,
+    pro: parseFloat(document.getElementById('p').value)||0,
+    carb: parseFloat(document.getElementById('ca').value)||0,
+    fat: parseFloat(document.getElementById('f').value)||0,
+    A:0,B1:0,B2:0,B3:0,B5:0,B6:0,B7:0,B9:0,B12:0,C:0,D:0,E:0,K:0,
+    Ca:0,Fe:0,Mg:0,Zn:0,Km:0,Na:0,P:0,Se:0,Cu:0,Mn:0
+  };
+  loadFoods();
+  alert("Custom food added!");
+  ['n','c','p','ca','f'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ================== Reset All ==================
+function resetAll() {
+  foodSel.selectedIndex = 0;
+  document.getElementById('portion').value = 100;
+  ['cal','pro','carb','fat','vA','vB1','vB2','vB3','vB5','vB6','vB7','vB9','vB12','vC','vD','vE','vK',
+   'mCa','mFe','mMg','mZn','mK','mNa','mP','mSe','mCu','mMn'].forEach(id => document.getElementById(id).textContent = '');
+  if(window.nutChart) window.nutChart.destroy();
+  meals = {Breakfast:[],Lunch:[],Dinner:[]};
+  mealsDiv.innerHTML = '';
+  ['n','c','p','ca','f'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ================== Theme Toggle ==================
+function toggleTheme() {
+  document.body.classList.toggle('light');
+}
+
+// ================== Footer Year ==================
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// ================== Initialize ==================
+selectFood();
+</script>
+</body>
+</html>
+
